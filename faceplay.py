@@ -19,7 +19,7 @@ is_interrupted = False
 
 def signal_handler(signal, frame):
     is_interrupted = True
-    
+
     
 class FaceRecog(object):
     
@@ -31,9 +31,9 @@ class FaceRecog(object):
         self.cascade = cv2.CascadeClassifier(FaceRecog.__cascade_path) #用 OpenCV 的 Cascade classifier 來偵測臉部
         self.model = load_model(FaceRecog.__model_path)
         self.margin = 10
-        self.imgs_per_person = 10
+        self.imgs_per_person = 5
         self.img_size = 160 #此版 Facenet model 需要的相片尺寸為 160×160
-        self.faces_to_find = []
+        self.faces_to_find = {}
         self._load_faces()
     
     def _load_faces(self):
@@ -49,7 +49,7 @@ class FaceRecog(object):
                     if aligned is not None:
                         print ("loading " + str(fullpath))
                         faceImg = self._pre_process(aligned)
-                        self.faces_to_find.append(self._l2_normalize(np.concatenate(self.model.predict(faceImg))))         
+                        self.faces_to_find[str(f)] = self._l2_normalize(np.concatenate(self.model.predict(faceImg)))
     
     def _prewhiten(self, x):
         #圖像白化（whitening）用於對過度曝光或低曝光的圖片進行處理，處理的方式就是改變圖像的平均像素值為 0 ，改變圖像的方差為單位方差 1。
@@ -107,6 +107,7 @@ class FaceRecog(object):
         signal.signal(signal.SIGINT, signal_handler)
         #is_interrupted = False
         found_times = 0
+        the_face = None
     
         if vc.isOpened():
             is_capturing, _ = vc.read()
@@ -137,15 +138,19 @@ class FaceRecog(object):
                     faceImg = self._pre_process(aligned)
                     embs = self._l2_normalize(np.concatenate(self.model.predict(faceImg)))
                     
-                    for embs_valid in self.faces_to_find:
+                    for key in self.faces_to_find:
+                        embs_valid = self.faces_to_find[key]
                         distanceNum = distance.euclidean(embs_valid, embs)
-                        print ("diff: " + str(distanceNum))
+                        print ("diff: " + str(key) + " " + str(distanceNum))
                         cv2.putText(rimg, "diff: "+str(distanceNum), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
                     
                         if distanceNum < 0.7:
                             found_times = found_times + 1
+                            the_face = str(key)
                             break
-                    
+            else:
+                gadget.play(face_detected=False)
+
             plt.imshow(frame)
             plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
             plt.xticks([])
@@ -165,9 +170,11 @@ class FaceRecog(object):
                 vc.release()
                 break
         
-        if found_times > 6 and gadget is not None:
-            #print (str(found_times))
-            gadget.play()
+        if gadget is not None:
+            if found_times > 3:
+                gadget.play(face_detected=True, detected_time=time.ctime(time.time()), the_face=the_face)
+            else:
+                gadget.play(face_detected=False)
         
         return 0 
              
