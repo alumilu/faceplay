@@ -143,19 +143,25 @@ class FaceRecog(object):
                         distanceNum = distance.euclidean(embs_valid, embs)
                         print ("diff: " + str(key) + " " + str(distanceNum))
                         cv2.putText(rimg, "diff: "+str(distanceNum), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
-                    
+
                         if distanceNum < 0.7:
                             found_times = found_times + 1
                             the_face = str(key)
                             break
+                        
+                plt.imshow(frame)
+                plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
+                plt.xticks([])
+                plt.yticks([])
+                display.clear_output(wait=True)
             else:
                 gadget.play(face_detected=False)
 
-            plt.imshow(frame)
-            plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
-            plt.xticks([])
-            plt.yticks([])
-            display.clear_output(wait=True)
+            #plt.imshow(frame)
+            #plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
+            #plt.xticks([])
+            #plt.yticks([])
+            #display.clear_output(wait=True)
         
             if len(imgs) == self.imgs_per_person:
                 vc.release()
