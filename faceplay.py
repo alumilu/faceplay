@@ -9,6 +9,7 @@ import os, time
 import cv2
 import matplotlib.pyplot as plt
 import signal
+import argparse
 
 from skimage.transform import resize
 from scipy.spatial import distance
@@ -27,7 +28,7 @@ class FaceRecog(object):
     __model_path = "./model/keras/facenet_keras.h5" #使用 MS-Celeb-1M dataset pretrained 好的 Keras model
     __faces_path = "./faces/"
     
-    def __init__(self):
+    def __init__(self, config):
         self.cascade = cv2.CascadeClassifier(FaceRecog.__cascade_path) #用 OpenCV 的 Cascade classifier 來偵測臉部
         self.model = load_model(FaceRecog.__model_path)
         self.margin = 10
@@ -35,6 +36,12 @@ class FaceRecog(object):
         self.img_size = 160 #此版 Facenet model 需要的相片尺寸為 160×160
         self.faces_to_find = {}
         self._load_faces()
+        self.vc = cv2.VideoCapture(0)
+        self.sensitivity = 0.7 #delta值 
+        self.show_img = config.showImgWindow
+
+    def __del__(self):
+        self.vc.release()
     
     def _load_faces(self):
         files = os.listdir(FaceRecog.__faces_path)
@@ -102,94 +109,87 @@ class FaceRecog(object):
             print ("no face file foune")
             return 1
         
-        vc = cv2.VideoCapture(0)
-        imgs = []
-        signal.signal(signal.SIGINT, signal_handler)
-        #is_interrupted = False
         found_times = 0
         the_face = None
     
-        if vc.isOpened():
-            is_capturing, _ = vc.read()
+        if self.vc.isOpened():
+            #is_capturing, _ = self.vc.read()
             #print ("capturing")
+            pass
         else:
             is_capturing = False
             #print ("not capturing")
+            return 1
             
-        while is_capturing:
-            is_capturing, frame = vc.read()
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            faces = self.cascade.detectMultiScale(frame,scaleFactor=1.1,minNeighbors=3,minSize=(160, 160))
+        #while is_capturing:
+        is_capturing, frame = self.vc.read()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        faces = self.cascade.detectMultiScale(frame,scaleFactor=1.3,minNeighbors=3)#,minSize=(160, 160))
             
-            if len(faces) != 0:
-                face = faces[0]
-                (x, y, w, h) = face
+        if len(faces) != 0:
+            (x, y, w, h) = faces[0]
+
+            if self.show_img == True:
                 left = x - self.margin // 2
                 right = x + w + self.margin // 2
                 bottom = y - self.margin // 2
                 top = y + h + self.margin // 2
-                img = resize(frame[bottom:top, left:right, :],(160, 160), mode='reflect')
-                imgs.append(img)
                 rimg = cv2.rectangle(frame,(left-1, bottom-1),(right+1, top+1),(255, 0, 0), thickness=2)
             
-                aligned = self._align_image(frame, 6)
+            faceMargin = np.zeros((h+self.margin*2, w+self.margin*2, 3), dtype = 'uint8')
+            faceMargin[self.margin:self.margin+h, self.margin:self.margin+w] = frame[y:y+h, x:x+w]
+            aligned = resize(faceMargin, (self.img_size, self.img_size), mode='reflect')
         
-                if(aligned is not None):
-                    faceImg = self._pre_process(aligned)
-                    embs = self._l2_normalize(np.concatenate(self.model.predict(faceImg)))
+            if(aligned is not None):
+                faceImg = self._pre_process(aligned)
+                embs = self._l2_normalize(np.concatenate(self.model.predict(faceImg)))
                     
-                    for key in self.faces_to_find:
-                        embs_valid = self.faces_to_find[key]
-                        distanceNum = distance.euclidean(embs_valid, embs)
-                        print ("diff: " + str(key) + " " + str(distanceNum))
-                        cv2.putText(rimg, "diff: "+str(distanceNum), (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                lgap = 1
+                for key in self.faces_to_find:
+                    embs_valid = self.faces_to_find[key]
+                    distanceNum = distance.euclidean(embs_valid, embs)
+                    print ("diff: " + str(key) + " " + str(distanceNum))
 
-                        if distanceNum < 0.7:
-                            found_times = found_times + 1
-                            the_face = str(key)
-                            break
-                        
+                    if self.show_img:
+                        cv2.putText(rimg, "diff: "+str(distanceNum), (x, y-(10*lgap)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                        lgap = lgap + 3
+
+                    if distanceNum < self.sensitivity:
+                        found_times = found_times + 1
+                        the_face = str(key)
+                        break
+
+            if self.show_img:            
                 plt.imshow(frame)
-                plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
+                plt.title('faceplay')
                 plt.xticks([])
                 plt.yticks([])
                 display.clear_output(wait=True)
-            else:
-                gadget.play(face_detected=False)
-
-            #plt.imshow(frame)
-            #plt.title('{}/{}'.format(len(imgs), self.imgs_per_person))
-            #plt.xticks([])
-            #plt.yticks([])
-            #display.clear_output(wait=True)
+        else:
+            gadget.play(face_detected=False)
         
-            if len(imgs) == self.imgs_per_person:
-                vc.release()
-                break
-        
-            try:
-                plt.pause(0.1)
-            except Exception:
-                pass
-        
-            if is_interrupted:
-                vc.release()
-                break
+        try:
+            plt.pause(0.1)
+        except Exception:
+            pass
         
         if gadget is not None:
-            if found_times > 3:
+            if found_times > 0:
                 gadget.play(face_detected=True, detected_time=time.ctime(time.time()), the_face=the_face)
             else:
                 gadget.play(face_detected=False)
         
         return 0 
              
-        
-if __name__ == '__main__':
-    
+
+def main():
+    parser = argparse.ArgumentParser(description='FacePlay')
+    parser.add_argument('--showImgWindow', default=False, type=bool, help='show image window with True, default is False')
+    args = parser.parse_args()
+
     from gadget.gadget import FacePlayGadget
 
-    facerecog = FaceRecog()
+    facerecog = FaceRecog(args)
     gadget = FacePlayGadget()
     signal.signal(signal.SIGINT, signal_handler)
     
@@ -198,12 +198,16 @@ if __name__ == '__main__':
     while True:
         facerecog.start(gadget)
         
-        time.sleep(0.5)
+        time.sleep(0)
         
         if is_interrupted:
             break
         
     print ("gadget is stopped")
+
+if __name__ == '__main__':
+    main()
+    
         
     
 
