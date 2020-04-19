@@ -151,7 +151,7 @@ class FaceRecog(object):
                     print ("diff: " + str(key) + " " + str(distanceNum))
 
                     if self.show_img:
-                        cv2.putText(rimg, "diff: "+str(distanceNum), (x, y-(10*lgap)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                        cv2.putText(rimg, "diff to "+str(key)+": "+str(distanceNum), (x, y-(10*lgap)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
                         lgap = lgap + 3
 
                     if distanceNum < self.sensitivity:
