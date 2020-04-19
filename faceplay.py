@@ -129,7 +129,7 @@ class FaceRecog(object):
         if len(faces) != 0:
             (x, y, w, h) = faces[0]
 
-            if self.show_img == True:
+            if self.show_img:
                 left = x - self.margin // 2
                 right = x + w + self.margin // 2
                 bottom = y - self.margin // 2
