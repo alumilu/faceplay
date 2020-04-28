@@ -150,7 +150,7 @@ class FaceRecog(object):
                     if found_face_index is not None:
                         cv2.putText(frame, self.faces_to_find_imgs[found_face_index], (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
                     else:
-                        cv2.putText(frame, 'not a target face', (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+                        cv2.putText(frame, 'unknown face', (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
 
                     cv2.imshow('FacePlay', frame)
 
