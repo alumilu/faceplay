@@ -26,7 +26,7 @@ class FaceRecog(object):
         self.show_img = config.display
         self.faces_to_find = []
         self.faces_to_find_imgs = []
-        self._load_faces()
+        self._load_target_faces()
 
         if platform.machine() == "aarch64":
             self.vc = cv2.VideoCapture(_get_jetson_gstreamer_source(), cv2.CAP_GSTREAMER)
@@ -49,7 +49,7 @@ class FaceRecog(object):
                 'videoconvert ! video/x-raw, format=(string)BGR ! appsink'
                 )
 
-    def _load_faces(self):
+    def _load_target_faces(self):
         files = os.listdir(FaceRecog.__faces_path)
         
         for f in files:
@@ -70,14 +70,13 @@ class FaceRecog(object):
                         
     def _lookup_target_face(self, face_encoding):
         """
-        See if this is a face we already have in our face list
+        See if this is a face we already have in the face list
         """
-        #metadata = None
         found_face_index = None
 
-        # If our known face list is empty, just return nothing since we can't possibly have seen this face.
+        # If known face list is empty, just return nothing since we can't possibly have seen this face.
         if len(self.faces_to_find) == 0:
-            return isfound
+            return None
 
         # Calculate the face distance between the unknown face and every face on in our known face list
         # This will return a floating point number between 0.0 and 1.0 for each known face. The smaller the number,
@@ -90,28 +89,12 @@ class FaceRecog(object):
         #print (best_match_index)
         print (face_distances[best_match_index])
 
-        # If the face with the lowest distance had a distance under 0.6, we consider it a face match.
+        # If the face with the lowest distance had a distance under the value defined in self.face_distance, we consider it a face match.
         # 0.6 comes from how the face recognition model was trained. It was trained to make sure pictures
         # of the same person always were less than 0.6 away from each other.
-        # Here, we are loosening the threshold a little bit to 0.65 because it is unlikely that two very similar
-        # people will come up to the door at the same time.
         if face_distances[best_match_index] < self.face_distance:
             found_face_index = best_match_index
-            # If we have a match, look up the metadata we've saved for it (like the first time we saw it, etc)
-            #metadata = known_face_metadata[best_match_index]
-
-            # Update the metadata for the face so we can keep track of how recently we have seen this face.
-            #metadata["last_seen"] = datetime.now()
-            #metadata["seen_frames"] += 1
-
-            # We'll also keep a total "seen count" that tracks how many times this person has come to the door.
-            # But we can say that if we have seen this person within the last 5 minutes, it is still the same
-            # visit, not a new visit. But if they go away for awhile and come back, that is a new visit.
-            #if datetime.now() - metadata["first_seen_this_interaction"] > timedelta(minutes=5):
-                #metadata["first_seen_this_interaction"] = datetime.now()
-                #metadata["seen_count"] += 1
-
-        #return metadata
+           
         return found_face_index
     
     def start(self, gadget=None):
@@ -120,20 +103,16 @@ class FaceRecog(object):
             print ("no target faces loaded")
             return 1
         
-        #isfound = False
         the_face = None
         stop = False
     
         if self.vc.isOpened():
-            #is_capturing, _ = self.vc.read()
             #print ("capturing")
             pass
         else:
-            is_capturing = False
-            #print ("not capturing")
+            print ("not capturing")
             return 1
             
-        #while is_capturing:
         while True:
             is_capturing, frame = self.vc.read()
           
@@ -150,12 +129,10 @@ class FaceRecog(object):
             found_face_index = None
             found_face_imgs = []
 
-            #for face_location, face_encoding in zip(face_locations, face_encodings):
             for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
                 found_face_index = self._lookup_target_face(face_encoding)
 
                 if found_face_index is not None:
-                    #print ("found")
                     found_face_imgs.append(self.faces_to_find_imgs[found_face_index])
 
                 if self.show_img:
