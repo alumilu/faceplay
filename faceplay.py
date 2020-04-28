@@ -103,7 +103,6 @@ class FaceRecog(object):
             print ("no target faces loaded")
             return 1
         
-        the_face = None
         stop = False
     
         if self.vc.isOpened():
