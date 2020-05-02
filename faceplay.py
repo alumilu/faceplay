@@ -128,34 +128,49 @@ class FaceRecog(object):
             found_face_index = None
             found_face_imgs = []
 
-            for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-                found_face_index = self._lookup_target_face(face_encoding)
-
-                if found_face_index is not None:
-                    found_face_imgs.append(self.faces_to_find_imgs[found_face_index])
-
-                if self.show_img:
-                    top *= 4
-                    right *= 4
-                    bottom *= 4
-                    left *= 4
-
-                    # Draw a box around the face
-                    cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-
-                    # Draw a label with a name below the face
-                    cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+            if len(face_encodings) > 0:
+                for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+                    found_face_index = self._lookup_target_face(face_encoding)
 
                     if found_face_index is not None:
-                        cv2.putText(frame, self.faces_to_find_imgs[found_face_index], (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
-                    else:
-                        cv2.putText(frame, 'unknown face', (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+                        found_face_imgs.append(self.faces_to_find_imgs[found_face_index])
 
+                    if self.show_img:
+                        top *= 4
+                        right *= 4
+                        bottom *= 4
+                        left *= 4
+
+                        # Draw a box around the face
+                        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+
+                        # Draw a label with a name below the face
+                        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+
+                        if found_face_index is not None:
+                            cv2.putText(frame, self.faces_to_find_imgs[found_face_index], (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+                        else:
+                            cv2.putText(frame, 'unknown face', (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+
+                        cv2.imshow('FacePlay', frame)
+
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            stop = True
+                            break
+                    else:
+                        time.sleep(0.5)
+                        if is_interrupted:
+                            stop = True
+                            break
+            else:
+                if self.show_img:
+                    cv2.rectangle(frame, (10,10), (300, 50), (0, 0, 255), cv2.FILLED)
+                    cv2.putText(frame, 'no faces detected', (10, 40), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
                     cv2.imshow('FacePlay', frame)
 
                     if cv2.waitKey(1) & 0xFF == ord('q'):
-                        stop = True
-                        break
+                            stop = True
+                            break
                 else:
                     time.sleep(0.5)
                     if is_interrupted:
