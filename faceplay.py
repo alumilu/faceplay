@@ -23,6 +23,7 @@ class FaceRecog(object):
     
     def __init__(self, config):
         self.face_distance = config.distance
+        self.model = config.model
         self.show_img = config.display
         self.faces_to_find = []
         self.faces_to_find_imgs = []
@@ -122,7 +123,7 @@ class FaceRecog(object):
             rgb_small_frame = small_frame[:, :, ::-1]
 
             # Find all the face locations and face encodings in the current frame of video
-            face_locations = face_recognition.face_locations(rgb_small_frame)
+            face_locations = face_recognition.face_locations(rgb_small_frame, model=self.model)
             face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
             found_face_index = None
@@ -169,8 +170,8 @@ class FaceRecog(object):
                     cv2.imshow('FacePlay', frame)
 
                     if cv2.waitKey(1) & 0xFF == ord('q'):
-                            stop = True
-                            break
+                        stop = True
+                        break
                 else:
                     time.sleep(0.5)
                     if is_interrupted:
@@ -179,7 +180,7 @@ class FaceRecog(object):
 
             if gadget is not None:
                 if found_face_index is not None:
-                    gadget.play(face_detected=True, detected_time=time.ctime(time.time()), the_face=found_face_imgs)
+                    gadget.play(face_detected=True, detected_time=time.ctime(time.time()), found_faces=found_face_imgs)
                 else:
                     gadget.play(face_detected=False)
 
@@ -191,8 +192,9 @@ class FaceRecog(object):
 
 def main():
     parser = argparse.ArgumentParser(description='FacePlay')
-    parser.add_argument('--display', default=1, type=int, help='display image window, set 1 to display the windown, otherwise set 0. default is 1')
+    parser.add_argument('--display', default=1, type=int, help='display image window, set 1 to display the window, otherwise set 0. default is 1')
     parser.add_argument('--distance', default=0.5, type=float, help='face distance for match, default is 0.5')
+    parser.add_argument('--model', default='hog', type=str, help='model to be used, set hog to use cpu, otherise set cnn to usg gpu-cuda')
     args = parser.parse_args()
 
     signal.signal(signal.SIGINT, signal_handler)

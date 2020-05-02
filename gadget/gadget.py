@@ -11,7 +11,7 @@ class FacePlayGadget(object):
         
         if kwargs.get("face_detected") is not None:
             if kwargs.get("face_detected") == True:
-                print ('the target face %s is detected, time: %s' % (kwargs.get("the_face"), kwargs.get("detected_time")))
+                print ('the target face %s is detected, time: %s' % (kwargs.get("found_faces"), kwargs.get("detected_time")))
                 #subprocess.run(['sudo', 'uhubctl', '-l', '2-1', '-p', '1', '-a', 'on']) #turn off the usb port
             else:
                 print ('no target faces are detected...')
